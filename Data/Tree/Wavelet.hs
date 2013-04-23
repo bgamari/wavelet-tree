@@ -72,6 +72,56 @@ select i c (WTree tree) = go i tree
             n <- go i r
             selectList n True lbl
 
+rangeCount :: (Ord a, Eq a)
+           => Int -> Int -> Interval a -> WaveletTree a -> Int
+rangeCount xs xe rng (WTree tree) = go xs xe tree
+  where go _ _ Nil = error "rangeCount: Unexpected Nil"
+        go xs xe tree
+          | xs > xe                  = 0
+          | rng `disjoint` bounds    = 0
+          | rng `containsEq` bounds  = xe - xs + 1
+          where Just bounds = labelsBounds tree
+        go xs xe (Branch lbl l r) =
+          let xls = rankList False (take (xs - 1) lbl) + 1
+              xle = rankList False (take xe lbl)
+              xrs = xs - xls
+              xre = xe - xle
+          in go xls xle l + go xrs xre r
+
+-- | Intervals are inclusive
+newtype Interval a = Interval (a,a)
+                   deriving (Show, Eq)
+
+instance Functor Interval where
+    fmap f (Interval (a,b)) = Interval (f a, f b)
+
+disjoint :: Ord a => Interval a -> Interval a -> Bool
+disjoint (Interval (xs,xe)) (Interval (ys,ye))
+  | ys > xe  = True
+  | xs > ye  = True
+  | otherwise = False
+
+containsEq :: (Ord a, Eq a) => Interval a -> Interval a -> Bool
+containsEq (Interval (xs,xe)) (Interval (ys,ye))
+  | ys >= xs && ye <= xe = True
+  | otherwise            = False
+
 inLabels :: Eq a => a -> BiTree b a -> Bool
 inLabels c (Leaf a)  = a == c
 inLabels c tree      = getAny $ foldMap (Any . (==c)) tree
+
+-- | Monoidal computation of the minimum and maximum element
+newtype Range a = Range { getRange :: Maybe (a,a) }
+                deriving (Show)
+
+instance Ord a => Monoid (Range a) where
+    mempty = Range Nothing
+    Range Nothing `mappend` a = a
+    a `mappend` Range Nothing = a
+    Range (Just (a,b)) `mappend` Range (Just (c,d)) = Range (Just (min a c, max b d))
+
+range :: a -> Range a
+range x = Range $ Just (x,x)
+
+labelsBounds :: Ord a => BiTree b a -> Maybe (Interval a)
+labelsBounds tree = Interval `fmap` getRange (foldMap range tree)
