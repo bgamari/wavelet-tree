@@ -23,7 +23,7 @@ atree = alphabeticTree $
 wtree = treeLabel atree string
 
 main = do
-    putStrLn $ let WTree tree = prune wtree in showBiTree tree
+    putStrLn $ showWaveletTree $ prune wtree
     print $ prune wtree
     print $ map (\i->access i wtree) [0..length string-1]
     print $ rank 6 'a' wtree

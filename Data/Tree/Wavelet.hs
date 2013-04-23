@@ -125,3 +125,6 @@ range x = Range $ Just (x,x)
 
 labelsBounds :: Ord a => BiTree b a -> Maybe (Interval a)
 labelsBounds tree = Interval `fmap` getRange (foldMap range tree)
+
+showWaveletTree :: Show a => WaveletTree a -> String
+showWaveletTree (WTree tree) = showBiTree tree
