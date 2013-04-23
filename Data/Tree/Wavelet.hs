@@ -20,14 +20,18 @@ import Data.Foldable
 import Data.Tree.Binary
 import qualified Data.Set as S
 
+-- | A wavelet tree
 newtype WaveletTree a = WTree (BiTree [Bool] a)
                       deriving (Show)
 
+-- | An alphabet tree specifies the desired symbol encoding of a wavelet tree
 newtype AlphaTree a = ATree (BiTree (S.Set a, S.Set a) a)
 
+-- | Generate the necessary annotates for building a 'WaveletTree' from a symbol encoding
 alphabeticTree :: Ord a => BiTree () a -> AlphaTree a
 alphabeticTree = ATree . fst . mapWalk S.singleton (\(l,r) _ -> (l,r))
 
+-- | Generate a wavelet tree with the @TreeLabel@ algorithm
 treeLabel :: Ord a => AlphaTree a -> [a] -> WaveletTree a
 treeLabel (ATree alphabet) = WTree . go alphabet
   where go _ [] = Nil
@@ -52,6 +56,7 @@ selectList n a = go 0 . zip [0..]
           in if n==i then Just p
                      else go i' xs
 
+-- | Retrieve the element with the given index in a wavelet tree
 access :: Show a => Int -> WaveletTree a -> Maybe a
 access i (WTree tree) = go i tree
   where go i (Leaf a)         = Just a
@@ -61,6 +66,7 @@ access i (WTree tree) = go i tree
           | otherwise         = go (rankList False (take i lbl)) l
           where xs ! idx = xs !! (idx `mod` length xs)
 
+-- | Retrieve the number of instances of the given symbol in a wavelet tree
 rank :: Eq a => Int -> a -> WaveletTree a -> Int
 rank i c (WTree tree) = go i tree
   where go i (Leaf a)                        = i
@@ -68,6 +74,7 @@ rank i c (WTree tree) = go i tree
           | inLabels c l = go (rankList False (take i lbl)) l
           | otherwise    = go (rankList True (take i lbl)) r
 
+-- | Prune redundant branches from a wavelet tree
 prune :: WaveletTree a -> WaveletTree a
 prune (WTree tree) = WTree $ go tree
   where go (Branch lbl l (Branch _ r Nil)) = go $ Branch lbl (go l) (go r)
@@ -76,6 +83,7 @@ prune (WTree tree) = WTree $ go tree
         go (Branch lbl (Branch _ l Nil) r) = go $ Branch lbl (go l) (go r)
         go a = a
 
+-- | Compute the position of the nth occurrence of the given symbol
 select :: Eq a => Int -> a -> WaveletTree a -> Maybe Int
 select i c (WTree tree) = go i tree
   where go i (Leaf a)   = Just i
@@ -87,6 +95,8 @@ select i c (WTree tree) = go i tree
             n <- go i r
             selectList n True lbl
 
+-- | Compute the number of occurrences of symbols in the given
+-- interval between the given positions
 rangeCount :: (Ord a, Eq a)
            => Int -> Int -> Interval a -> WaveletTree a -> Int
 rangeCount xs xe rng (WTree tree) = go xs xe tree
@@ -110,12 +120,14 @@ newtype Interval a = Interval (a,a)
 instance Functor Interval where
     fmap f (Interval (a,b)) = Interval (f a, f b)
 
+-- | Are two intervals disjoint?
 disjoint :: Ord a => Interval a -> Interval a -> Bool
 disjoint (Interval (xs,xe)) (Interval (ys,ye))
   | ys > xe  = True
   | xs > ye  = True
   | otherwise = False
 
+-- | Does one interval contain the other?
 containsEq :: (Ord a, Eq a) => Interval a -> Interval a -> Bool
 containsEq (Interval (xs,xe)) (Interval (ys,ye))
   | ys >= xs && ye <= xe = True
@@ -135,11 +147,13 @@ instance Ord a => Monoid (Range a) where
     a `mappend` Range Nothing = a
     Range (Just (a,b)) `mappend` Range (Just (c,d)) = Range (Just (min a c, max b d))
 
+-- | Lift a value into a Range
 range :: a -> Range a
 range x = Range $ Just (x,x)
 
 labelsBounds :: Ord a => BiTree b a -> Maybe (Interval a)
 labelsBounds tree = Interval `fmap` getRange (foldMap range tree)
 
+-- | Pretty print a wavelet tree
 showWaveletTree :: Show a => WaveletTree a -> String
 showWaveletTree (WTree tree) = showBiTree tree
