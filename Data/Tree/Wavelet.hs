@@ -50,8 +50,8 @@ rank :: Eq a => Int -> a -> WaveletTree a -> Int
 rank i c (WTree tree) = go i tree
   where go i (Leaf a)                        = i
         go i (Branch lbl l r)
-          | getAny $ foldMap (Any . (==c)) l = go (rankList False (take i lbl)) l
-          | otherwise                        = go (rankList True (take i lbl)) r
+          | inLabels c l = go (rankList False (take i lbl)) l
+          | otherwise    = go (rankList True (take i lbl)) r
 
 prune :: WaveletTree a -> WaveletTree a
 prune (WTree tree) = WTree $ go tree
@@ -65,9 +65,13 @@ select :: Eq a => Int -> a -> WaveletTree a -> Maybe Int
 select i c (WTree tree) = go i tree
   where go i (Leaf a)   = Just i
         go i (Branch lbl l r)
-          | getAny $ foldMap (Any . (==c)) l = do
+          | inLabels c l = do
             n <- go i l
             selectList n False lbl
           | otherwise = do
             n <- go i r
             selectList n True lbl
+
+inLabels :: Eq a => a -> BiTree b a -> Bool
+inLabels c (Leaf a)  = a == c
+inLabels c tree      = getAny $ foldMap (Any . (==c)) tree
