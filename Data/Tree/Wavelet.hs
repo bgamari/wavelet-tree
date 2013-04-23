@@ -1,4 +1,19 @@
-module Data.Tree.Wavelet where
+module Data.Tree.Wavelet ( -- * Alphabet trees
+                           AlphaTree
+                         , alphabeticTree
+                           -- * Wavelet trees
+                         , WaveletTree
+                         , treeLabel
+                         , prune
+                         , access
+                         , rank
+                         , select
+                         , rangeCount
+                           -- * Utilities
+                         , Interval(..)
+                           -- * Debugging
+                         , showWaveletTree
+                         ) where
 
 import Data.Monoid
 import Data.Foldable
