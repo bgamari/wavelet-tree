@@ -28,3 +28,4 @@ main = do
     print $ map (\i->access i wtree) [0..length string-1]
     print $ rank 6 'a' wtree
     print $ select 2 'b' wtree
+    print $ rangeCount 0 5 (Interval ('a','d')) wtree
