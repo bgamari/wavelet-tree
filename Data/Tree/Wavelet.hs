@@ -9,6 +9,7 @@ module Data.Tree.Wavelet ( -- * Alphabet trees
                          , rank
                          , select
                          , rangeCount
+                         , rangeReport
                            -- * Utilities
                          , Interval(..)
                            -- * Debugging
@@ -112,6 +113,22 @@ rangeCount xs xe rng (WTree tree) = go xs xe tree
               xrs = xs - xls
               xre = xe - xle
           in go xls xle l + go xrs xre r
+
+rangeReport :: (Ord a, Eq a)
+       => Int -> Int -> Interval a -> WaveletTree a -> [(a, Int)]
+rangeReport xs xe rng (WTree tree) = go xs xe tree
+  where go _ _ Nil = error "report: Unexpected Nil"
+        go xs xe tree
+          | xs > xe                  = []
+          | rng `disjoint` bounds    = []
+          where Just bounds = labelsBounds tree
+        go xs xe (Leaf a)            = [(a, xe-xs+1)]
+        go xs xe (Branch lbl l r) =
+          let xls = rankList False (take (xs-1) lbl) + 1
+              xle = rankList False (take xe lbl)
+              xrs = xs - xls
+              xre = xe - xle
+          in go xls xle l ++ go xrs xre r
 
 -- | Intervals are inclusive
 newtype Interval a = Interval (a,a)
